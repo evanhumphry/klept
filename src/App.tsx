@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Settings as SettingsIcon, RefreshCw, Pin, Github, Cloud, CloudOff, CheckCircle, Tag, X, Moon, Sun, Monitor, Bookmark as BookmarkIcon, Pencil } from 'lucide-react';
-import type { 
-  Bookmark, 
+import { Plus, Trash2, Settings as SettingsIcon, RefreshCw, Pin, Github, Cloud, CloudOff, CheckCircle, Tag, X, Moon, Sun, Monitor, Bookmark as BookmarkIcon, Pencil, Search, ArrowUpRight } from 'lucide-react';
+import type {
+  Bookmark,
   Settings,
 } from './lib/storage';
 import {
-  getBookmarks, 
-  saveBookmarks, 
-  getSettings, 
-  saveSettings, 
-  syncToGist, 
-  syncFromGist 
+  getBookmarks,
+  saveBookmarks,
+  getSettings,
+  saveSettings,
+  syncToGist,
+  syncFromGist
 } from './lib/storage';
 
 function App() {
@@ -51,16 +51,13 @@ function App() {
     setBookmarks(localBookmarks);
     setSettings(localSettings);
 
-    // Check URL params
     const params = new URLSearchParams(window.location.search);
-    
-    // Tag filtering
+
     const tagParam = params.get('tag');
     if (tagParam) {
       setSelectedTag(tagParam);
     }
 
-    // Bookmarklet / Quick Add support
     const action = params.get('action');
     const urlParam = params.get('url');
     const titleParam = params.get('title');
@@ -76,7 +73,6 @@ function App() {
     }
   }, []);
 
-  // Apply theme
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
@@ -92,7 +88,6 @@ function App() {
     }
   }, [settings.theme]);
 
-  // Listen for system theme changes
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = () => {
@@ -116,8 +111,7 @@ function App() {
   const handleTagClick = (tag: string) => {
     const nextTag = selectedTag === tag ? null : tag;
     setSelectedTag(nextTag);
-    
-    // Update URL without reloading
+
     const newUrl = new URL(window.location.href);
     if (nextTag) {
       newUrl.searchParams.set('tag', nextTag);
@@ -135,10 +129,8 @@ function App() {
 
   const allTags = getAllTags();
 
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // If user is typing in an input, don't interfere unless it's Enter in the search box
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
         if (e.key === 'Enter' && document.activeElement === searchInputRef.current) {
            const sorted = getSortedBookmarks();
@@ -149,7 +141,6 @@ function App() {
         return;
       }
 
-      // If typing alphanumerics and not holding modifiers, focus search
       if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
         searchInputRef.current?.focus();
       }
@@ -157,7 +148,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [bookmarks, searchQuery]); // Add dependencies to ensure getSortedBookmarks has latest data
+  }, [bookmarks, searchQuery]);
 
   const autoPull = async (currentSettings: Settings) => {
     setSyncStatus('syncing');
@@ -166,14 +157,12 @@ function App() {
       const local = getBookmarks();
 
       if (remote.length === 0 && local.length > 0) {
-        // If Gist is empty but we have local bookmarks, assume first sync and push local to Gist
         await syncToGist(local, currentSettings);
       } else {
-        // Otherwise, pull from Gist (Gist wins)
         setBookmarks(remote);
         saveBookmarks(remote);
       }
-      
+
       setSyncStatus('success');
       setTimeout(() => setSyncStatus('idle'), 3000);
     } catch (e) {
@@ -200,8 +189,8 @@ function App() {
   };
 
   const getSortedBookmarks = () => {
-    let filtered = bookmarks.filter(b => 
-      b.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    let filtered = bookmarks.filter(b =>
+      b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       b.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
       b.tags?.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))
     );
@@ -224,25 +213,18 @@ function App() {
   };
 
   const fetchTitle = async (url: string): Promise<string> => {
-    // Default fallback: use domain name or full URL
     let fallbackTitle = url;
     try {
       const urlObj = new URL(url);
       fallbackTitle = urlObj.hostname;
     } catch {
-      // invalid url, keep original string
+      // invalid url
     }
 
     try {
-      // Use allorigins.win as a CORS proxy to fetch the page content
       const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-      
-      if (!response.ok) {
-        throw new Error('Proxy error');
-      }
-
+      if (!response.ok) throw new Error('Proxy error');
       const data = await response.json();
-      
       if (data.contents) {
         const doc = new DOMParser().parseFromString(data.contents, 'text/html');
         const title = doc.querySelector('title')?.textContent;
@@ -251,7 +233,7 @@ function App() {
     } catch (e) {
       console.warn('Failed to fetch title, using fallback:', e);
     }
-    
+
     return fallbackTitle;
   };
 
@@ -264,17 +246,15 @@ function App() {
 
     try {
       let title = newTitle;
-      
-      // Only fetch title if one wasn't provided
       if (!title) {
         title = await fetchTitle(formattedUrl);
       }
-      
+
       const tagsList = newTags
         .split(',')
         .map(t => t.trim())
         .filter(t => t.length > 0);
-      
+
       const newBookmark: Bookmark = {
         id: crypto.randomUUID(),
         title: title,
@@ -300,7 +280,7 @@ function App() {
   };
 
   const handleDeleteBookmark = (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this bookmark?')) return;
+    if (!window.confirm('Delete this bookmark?')) return;
     const updated = bookmarks.filter(b => b.id !== id);
     updateBookmarks(updated);
   };
@@ -308,11 +288,11 @@ function App() {
   const handleUpdateBookmark = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingBookmark) return;
-    
+
     const tagsList = editTagsString.split(',').map(t => t.trim()).filter(t => t.length > 0);
     const updatedBookmark = { ...editingBookmark, tags: tagsList };
 
-    const updated = bookmarks.map(b => 
+    const updated = bookmarks.map(b =>
       b.id === updatedBookmark.id ? updatedBookmark : b
     );
     updateBookmarks(updated);
@@ -321,7 +301,7 @@ function App() {
   };
 
   const handleTogglePin = (id: string) => {
-    const updated = bookmarks.map(b => 
+    const updated = bookmarks.map(b =>
       b.id === id ? { ...b, pinned: !b.pinned } : b
     );
     updateBookmarks(updated);
@@ -331,106 +311,118 @@ function App() {
     e.preventDefault();
     saveSettings(settings);
     setIsSettingsOpen(false);
-    showMessage('Settings saved locally');
+    showMessage('Settings saved');
     if (settings.gistId && settings.githubToken) {
       autoPull(settings);
     }
   };
 
+  const getDomain = (url: string) => {
+    try { return new URL(url).hostname.replace('www.', ''); } catch { return ''; }
+  };
+
   const sortedBookmarks = getSortedBookmarks();
 
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-900 font-sans dark:bg-gray-900 dark:text-gray-100 transition-colors duration-200">
-      <header className="bg-white border-b sticky top-0 z-10 dark:bg-gray-900 dark:border-gray-800">
-        <div className="max-w-4xl mx-auto px-4 h-24 flex items-center justify-between">
-          <h1 
-            className="text-4xl font-bold flex items-center gap-4 cursor-pointer hover:text-indigo-600 transition-colors dark:opacity-80"
-            onClick={() => window.location.href = window.location.origin + window.location.pathname}
-          >
-            <img src="logo.svg" alt="Klept Logo" className="h-16 w-16 rounded-full dark:opacity-80" />
-            Klept
-          </h1>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center mr-2 text-sm text-gray-500 dark:text-gray-400 dark:opacity-80">
+    <div className="noise min-h-screen bg-paper text-ink font-body dark:bg-ink dark:text-paper transition-colors duration-300">
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-paper/80 backdrop-blur-xl border-b border-paper-border dark:bg-ink/80 dark:border-ink-border">
+        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1
+              className="font-mono text-xl font-bold tracking-tight cursor-pointer hover:text-amber transition-colors flex items-center gap-2.5"
+              onClick={() => window.location.href = window.location.origin + window.location.pathname}
+            >
+              klept
+            </h1>
+
+            {/* Sync status */}
+            <div className="flex items-center text-xs font-mono">
               {syncStatus === 'syncing' && (
-                <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400">
-                  <RefreshCw size={14} className="animate-spin" />
-                  Syncing...
+                <span className="flex items-center gap-1.5 text-amber animate-fade-in">
+                  <RefreshCw size={12} className="animate-spin" />
+                  sync
                 </span>
               )}
               {syncStatus === 'success' && (
-                <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                  <CheckCircle size={14} />
-                  Synced
+                <span className="flex items-center gap-1.5 text-green-accent animate-fade-in">
+                  <CheckCircle size={12} />
+                  synced
                 </span>
               )}
               {syncStatus === 'error' && (
-                <span className="flex items-center gap-1 text-red-500 dark:text-red-400" title="Sync failed. Check settings.">
-                  <CloudOff size={14} />
-                  Error
+                <span className="flex items-center gap-1.5 text-red-accent animate-fade-in" title="Sync failed">
+                  <CloudOff size={12} />
+                  error
                 </span>
               )}
               {syncStatus === 'idle' && settings.gistId && (
-                <span className="flex items-center gap-1 text-gray-400 dark:text-gray-500">
-                  <Cloud size={14} />
+                <span className="flex items-center gap-1.5 text-ink-ghost dark:text-ink-subtle">
+                  <Cloud size={12} />
                 </span>
               )}
             </div>
+          </div>
+
+          <div className="flex items-center gap-1">
             <a
               href="https://github.com/tinykings"
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors dark:hover:bg-gray-800 dark:opacity-80"
+              className="p-2 rounded-md text-ink-subtle hover:text-ink hover:bg-paper-dim transition-all dark:text-ink-ghost dark:hover:text-paper dark:hover:bg-ink-lighter"
               title="GitHub"
             >
-              <Github size={20} />
+              <Github size={16} />
             </a>
             <button
               onClick={() => setIsSettingsOpen(true)}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors dark:hover:bg-gray-800 dark:opacity-80"
+              className="p-2 rounded-md text-ink-subtle hover:text-ink hover:bg-paper-dim transition-all dark:text-ink-ghost dark:hover:text-paper dark:hover:bg-ink-lighter"
               title="Settings"
             >
-              <SettingsIcon size={20} />
+              <SettingsIcon size={16} />
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-5xl mx-auto px-6 py-8">
+        {/* Toast message */}
         {message.text && (
-          <div className={`mb-6 p-3 rounded-md text-sm font-medium ${
-            message.type === 'error' 
-              ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
-              : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+          <div className={`mb-6 animate-slide-down font-mono text-sm px-4 py-2.5 rounded-md border-l-2 ${
+            message.type === 'error'
+              ? 'bg-red-accent/10 text-red-accent border-red-accent'
+              : 'bg-green-accent/10 text-green-accent border-green-accent'
           }`}>
             {message.text}
           </div>
         )}
 
+        {/* Add bookmark */}
         {!isFormExpanded ? (
           <button
             onClick={() => setIsFormExpanded(true)}
-            className="w-full bg-white p-4 rounded-xl border border-dashed border-gray-300 text-gray-500 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 transition-all flex items-center justify-center gap-2 mb-8 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700/50 dark:hover:text-indigo-400 dark:hover:border-indigo-700 cursor-pointer"
+            className="w-full py-3 px-4 rounded-lg border border-dashed border-paper-border text-paper-muted hover:text-amber hover:border-amber/40 hover:bg-amber-glow transition-all flex items-center justify-center gap-2 mb-8 font-mono text-sm dark:border-ink-border dark:text-ink-subtle dark:hover:text-amber dark:hover:border-amber/30 dark:hover:bg-amber-glow cursor-pointer animate-fade-up"
           >
-            Steal a link, you deserve it
+            <Plus size={14} />
+            steal a link
           </button>
         ) : (
-          <form ref={formRef} onSubmit={handleAddBookmark} className="bg-white p-6 rounded-xl border shadow-sm mb-8 relative dark:bg-gray-800 dark:border-gray-700">
-            <div className="flex flex-col gap-4">
+          <form ref={formRef} onSubmit={handleAddBookmark} className="mb-8 animate-slide-down rounded-lg border border-paper-border bg-paper p-5 dark:border-ink-border dark:bg-ink-light">
+            <div className="flex flex-col gap-3">
               <input
                 ref={urlInputRef}
                 type="text"
-                placeholder="URL (e.g. github.com)"
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-900 dark:border-gray-700 dark:text-white dark:placeholder-gray-500"
+                placeholder="URL"
+                className="w-full px-3 py-2 bg-paper-dim border border-paper-border rounded-md font-mono text-sm focus:outline-none focus:border-amber focus:ring-1 focus:ring-amber dark:bg-ink-lighter dark:border-ink-border dark:text-paper dark:placeholder-ink-muted"
                 value={newUrl}
                 disabled={isAdding}
                 onChange={(e) => setNewUrl(e.target.value)}
               />
-              <div className="grid grid-cols-1 md:grid-cols-[1fr,1fr,auto] gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-[1fr,1fr,auto] gap-3">
                 <input
                   type="text"
                   placeholder="Title (optional)"
-                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-900 dark:border-gray-700 dark:text-white dark:placeholder-gray-500"
+                  className="w-full px-3 py-2 bg-paper-dim border border-paper-border rounded-md text-sm focus:outline-none focus:border-amber focus:ring-1 focus:ring-amber dark:bg-ink-lighter dark:border-ink-border dark:text-paper dark:placeholder-ink-muted"
                   value={newTitle}
                   disabled={isAdding}
                   onChange={(e) => setNewTitle(e.target.value)}
@@ -438,8 +430,8 @@ function App() {
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="Tags"
-                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-900 dark:border-gray-700 dark:text-white dark:placeholder-gray-500"
+                    placeholder="Tags (comma separated)"
+                    className="w-full px-3 py-2 bg-paper-dim border border-paper-border rounded-md text-sm focus:outline-none focus:border-amber focus:ring-1 focus:ring-amber dark:bg-ink-lighter dark:border-ink-border dark:text-paper dark:placeholder-ink-muted"
                     value={newTags}
                     disabled={isAdding}
                     onChange={(e) => setNewTags(e.target.value)}
@@ -454,13 +446,13 @@ function App() {
                 <button
                   type="submit"
                   disabled={isAdding || !newUrl}
-                  className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 min-w-[100px] dark:bg-indigo-600 dark:hover:bg-indigo-500"
+                  className="bg-ink text-paper px-5 py-2 rounded-md text-sm font-medium hover:bg-ink/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 min-w-[90px] dark:bg-paper dark:text-ink dark:hover:bg-paper/80"
                 >
                   {isAdding ? (
-                    <RefreshCw size={20} className="animate-spin" />
+                    <RefreshCw size={14} className="animate-spin" />
                   ) : (
                     <>
-                      <Plus size={20} />
+                      <Plus size={14} />
                       Add
                     </>
                   )}
@@ -470,212 +462,227 @@ function App() {
           </form>
         )}
 
-        <div className="mb-4">
+        {/* Search */}
+        <div className="mb-5 relative animate-fade-up" style={{ animationDelay: '0.05s' }}>
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-paper-muted dark:text-ink-muted pointer-events-none" />
           <input
             ref={searchInputRef}
             autoFocus
             type="text"
             placeholder="Search bookmarks..."
-            className="w-full px-4 py-2 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-500"
+            className="w-full pl-9 pr-4 py-2.5 bg-paper-dim border border-paper-border rounded-lg text-sm focus:outline-none focus:border-amber focus:ring-1 focus:ring-amber transition-colors dark:bg-ink-light dark:border-ink-border dark:text-paper dark:placeholder-ink-muted"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
+        {/* Tags */}
         {allTags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-6">
+          <div className="flex flex-wrap gap-1.5 mb-6 animate-fade-up" style={{ animationDelay: '0.1s' }}>
             {allTags.map(tag => (
               <button
                 key={tag}
                 onClick={() => handleTagClick(tag)}
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors flex items-center gap-1 ${
-                  selectedTag === tag 
-                    ? 'bg-indigo-100 text-indigo-800 ring-2 ring-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-300 dark:ring-indigo-500' 
-                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:border-gray-700'
+                className={`px-2.5 py-1 rounded-md text-xs font-mono transition-all flex items-center gap-1 ${
+                  selectedTag === tag
+                    ? 'bg-amber/15 text-amber border border-amber/30 font-medium'
+                    : 'text-paper-subtle border border-paper-border hover:border-amber/30 hover:text-amber dark:text-ink-ghost dark:border-ink-border dark:hover:border-amber/30 dark:hover:text-amber'
                 }`}
               >
-                <Tag size={12} />
+                <Tag size={10} />
                 {tag}
-                {selectedTag === tag && <X size={12} className="ml-1" />}
+                {selectedTag === tag && <X size={10} className="ml-0.5" />}
               </button>
             ))}
           </div>
         )}
 
-        <div className="space-y-3">
+        {/* Bookmark list */}
+        <div className="space-y-1.5">
           {sortedBookmarks.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 border-2 border-dashed rounded-xl dark:border-gray-800 dark:text-gray-500">
-              <p>
-                {searchQuery || selectedTag 
-                  ? 'No bookmarks match your filter.' 
-                  : 'No bookmarks yet. Add your first link above!'}
+            <div className="text-center py-16 animate-fade-up">
+              <p className="font-mono text-sm text-paper-muted dark:text-ink-muted">
+                {searchQuery || selectedTag
+                  ? 'Nothing matches.'
+                  : 'No bookmarks yet.'}
               </p>
             </div>
           ) : (
-            sortedBookmarks.map((bookmark) => (
-              <div 
-                key={bookmark.id} 
+            sortedBookmarks.map((bookmark, i) => (
+              <div
+                key={bookmark.id}
                 onClick={() => window.location.href = bookmark.url}
-                className="bg-white p-4 rounded-lg border shadow-sm hover:shadow-md hover:bg-indigo-50 hover:border-indigo-300 transition-all flex items-center justify-between group cursor-pointer dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-indigo-900/20 dark:hover:border-indigo-700"
+                className="group animate-fade-up rounded-lg border border-transparent px-4 py-3 flex items-center justify-between cursor-pointer transition-all duration-200 hover:bg-paper-dim hover:border-paper-border dark:hover:bg-ink-light dark:hover:border-ink-border"
+                style={{ animationDelay: `${0.04 * Math.min(i, 15)}s` }}
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <img 
-                      src={`https://www.google.com/s2/favicons?domain=${(() => { try { return new URL(bookmark.url).hostname } catch { return '' } })()}&sz=32`}
-                      alt=""
-                      className="w-4 h-4 rounded-sm"
-                      onError={(e) => { e.currentTarget.style.display = 'none'; }} 
-                    />
-                    <h3 className="font-medium truncate group-hover:text-indigo-600 transition-colors block dark:text-gray-100 dark:group-hover:text-indigo-400">
-                      {bookmark.title}
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-sm text-gray-500 truncate dark:text-gray-400">{bookmark.url}</p>
-                    {bookmark.tags && bookmark.tags.length > 0 && (
-                      <div className="flex gap-1">
-                        {bookmark.tags.map(tag => (
-                          <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full dark:bg-gray-900 dark:text-gray-300">
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                <div className="flex-1 min-w-0 flex items-center gap-3">
+                  {/* Favicon */}
+                  <img
+                    src={`https://www.google.com/s2/favicons?domain=${getDomain(bookmark.url)}&sz=32`}
+                    alt=""
+                    className="w-4 h-4 rounded-sm shrink-0 opacity-60 group-hover:opacity-100 transition-opacity"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      {bookmark.pinned && (
+                        <Pin size={10} className="text-amber fill-amber shrink-0" />
+                      )}
+                      <h3 className="text-sm font-medium truncate group-hover:text-amber transition-colors">
+                        {bookmark.title}
+                      </h3>
+                      <ArrowUpRight size={12} className="shrink-0 opacity-0 group-hover:opacity-50 transition-opacity -ml-0.5" />
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <p className="text-xs text-paper-muted truncate font-mono dark:text-ink-muted">{getDomain(bookmark.url)}</p>
+                      {bookmark.tags && bookmark.tags.length > 0 && (
+                        <div className="flex gap-1 shrink-0">
+                          {bookmark.tags.map(tag => (
+                            <span key={tag} className="text-[10px] font-mono text-paper-subtle bg-paper-dim px-1.5 py-0.5 rounded dark:bg-ink-lighter dark:text-ink-ghost">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 ml-4">
+
+                {/* Actions */}
+                <div className="flex items-center gap-0.5 ml-3 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setEditingBookmark(bookmark);
                       setEditTagsString(bookmark.tags?.join(', ') || '');
                     }}
-                    className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all dark:hover:bg-indigo-900/30 dark:hover:text-indigo-400"
+                    className="p-1.5 rounded-md text-ink-subtle hover:text-amber hover:bg-amber-glow transition-all dark:text-ink-ghost dark:hover:text-amber"
                     title="Edit"
                   >
-                    <Pencil size={18} />
+                    <Pencil size={13} />
                   </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleTogglePin(bookmark.id);
                     }}
-                    className={`p-2 rounded-md transition-all ${
-                      bookmark.pinned 
-                        ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50' 
-                        : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 dark:hover:text-indigo-400'
+                    className={`p-1.5 rounded-md transition-all ${
+                      bookmark.pinned
+                        ? 'text-amber'
+                        : 'text-ink-subtle hover:text-amber hover:bg-amber-glow dark:text-ink-ghost dark:hover:text-amber'
                     }`}
-                    title={bookmark.pinned ? "Unpin" : "Pin to top"}
+                    title={bookmark.pinned ? "Unpin" : "Pin"}
                   >
-                    <Pin size={18} className={bookmark.pinned ? "fill-current" : ""} />
+                    <Pin size={13} className={bookmark.pinned ? "fill-current" : ""} />
                   </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteBookmark(bookmark.id);
                     }}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                    className="p-1.5 rounded-md text-ink-subtle hover:text-red-accent hover:bg-red-accent/10 transition-all dark:text-ink-ghost dark:hover:text-red-accent"
                     title="Delete"
                   >
-                    <Trash2 size={18} />
+                    <Trash2 size={13} />
                   </button>
                 </div>
               </div>
             ))
           )}
         </div>
+
+        {/* Footer count */}
+        {bookmarks.length > 0 && (
+          <div className="mt-8 pt-6 border-t border-paper-border dark:border-ink-border animate-fade-up" style={{ animationDelay: '0.3s' }}>
+            <p className="text-xs font-mono text-paper-muted dark:text-ink-muted">
+              {sortedBookmarks.length} of {bookmarks.length} bookmarks
+              {selectedTag && <span> in <span className="text-amber">#{selectedTag}</span></span>}
+            </p>
+          </div>
+        )}
       </main>
 
+      {/* Settings modal */}
       {isSettingsOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 dark:bg-gray-900 dark:border dark:border-gray-800">
+        <div className="fixed inset-0 bg-ink/60 flex items-center justify-center z-50 p-4 backdrop-blur-md animate-fade-in">
+          <div className="bg-paper rounded-xl border border-paper-border max-w-md w-full p-6 animate-fade-up dark:bg-ink-light dark:border-ink-border">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold flex items-center gap-2 dark:text-white">
-                <SettingsIcon size={24} />
+              <h2 className="font-mono text-lg font-bold flex items-center gap-2">
+                <SettingsIcon size={18} />
                 Settings
               </h2>
+              <button onClick={() => setIsSettingsOpen(false)} className="p-1 rounded-md hover:bg-paper-dim dark:hover:bg-ink-lighter transition-colors">
+                <X size={16} />
+              </button>
             </div>
-            <form onSubmit={handleSaveSettings} className="space-y-4">
+            <form onSubmit={handleSaveSettings} className="space-y-5">
+              {/* Theme */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">Theme</label>
-                <div className="flex gap-2 p-1 bg-gray-100 rounded-lg dark:bg-gray-800">
-                  <button
-                    type="button"
-                    onClick={() => setSettings({ ...settings, theme: 'light' })}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all ${
-                      settings.theme === 'light'
-                        ? 'bg-white text-indigo-600 shadow-sm dark:bg-gray-700 dark:text-indigo-400'
-                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                    }`}
-                  >
-                    <Sun size={16} />
-                    Light
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSettings({ ...settings, theme: 'dark' })}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all ${
-                      settings.theme === 'dark'
-                        ? 'bg-white text-indigo-600 shadow-sm dark:bg-gray-700 dark:text-indigo-400'
-                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                    }`}
-                  >
-                    <Moon size={16} />
-                    Dark
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSettings({ ...settings, theme: 'system' })}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all ${
-                      settings.theme === 'system' || !settings.theme
-                        ? 'bg-white text-indigo-600 shadow-sm dark:bg-gray-700 dark:text-indigo-400'
-                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                    }`}
-                  >
-                    <Monitor size={16} />
-                    System
-                  </button>
+                <label className="block text-xs font-mono font-medium text-paper-subtle mb-2 uppercase tracking-wider dark:text-ink-ghost">Theme</label>
+                <div className="flex gap-1 p-1 bg-paper-dim rounded-lg dark:bg-ink-lighter">
+                  {[
+                    { key: 'light' as const, icon: Sun, label: 'Light' },
+                    { key: 'dark' as const, icon: Moon, label: 'Dark' },
+                    { key: 'system' as const, icon: Monitor, label: 'System' },
+                  ].map(({ key, icon: Icon, label }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setSettings({ ...settings, theme: key })}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all ${
+                        (settings.theme === key || (key === 'system' && !settings.theme))
+                          ? 'bg-paper text-ink shadow-sm dark:bg-ink dark:text-paper'
+                          : 'text-paper-muted hover:text-ink dark:text-ink-muted dark:hover:text-paper'
+                      }`}
+                    >
+                      <Icon size={13} />
+                      {label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <div className="border-t pt-4 dark:border-gray-800">
-                <h3 className="font-medium mb-3 flex items-center gap-2 dark:text-gray-200">
-                  <BookmarkIcon size={18} />
+              {/* Bookmarklet */}
+              <div className="border-t border-paper-border pt-5 dark:border-ink-border">
+                <h3 className="text-xs font-mono font-medium text-paper-subtle mb-2 uppercase tracking-wider flex items-center gap-1.5 dark:text-ink-ghost">
+                  <BookmarkIcon size={12} />
                   Bookmarklet
                 </h3>
-                <p className="text-sm text-gray-500 mb-2 dark:text-gray-400">
-                  Drag this link to your bookmarks bar to quickly add sites to Klept:
+                <p className="text-xs text-paper-muted mb-3 dark:text-ink-muted">
+                  Drag to your bookmarks bar:
                 </p>
                 <div
                   dangerouslySetInnerHTML={{
-                    __html: `<a href="javascript:(function(){window.location.href='${window.location.origin}${window.location.pathname}?action=add&url='+encodeURIComponent(window.location.href)+'&title='+encodeURIComponent(document.title)})()" class="inline-block px-3 py-1 bg-gray-100 border border-gray-300 rounded text-sm font-medium text-indigo-600 hover:bg-gray-200 dark:bg-gray-800 dark:border-gray-700 dark:text-indigo-400 dark:hover:bg-gray-700 cursor-grab active:cursor-grabbing" onclick="event.preventDefault()">Add to Klept</a>`
+                    __html: `<a href="javascript:(function(){window.location.href='${window.location.origin}${window.location.pathname}?action=add&url='+encodeURIComponent(window.location.href)+'&title='+encodeURIComponent(document.title)})()" class="inline-block px-3 py-1.5 bg-ink text-paper rounded-md text-xs font-mono font-medium hover:bg-ink/80 dark:bg-paper dark:text-ink dark:hover:bg-paper/80 cursor-grab active:cursor-grabbing transition-colors" onclick="event.preventDefault()">+ Add to Klept</a>`
                   }}
                 />
               </div>
 
-              <div className="border-t pt-4 dark:border-gray-800">
-                <h3 className="font-medium mb-3 flex items-center gap-2 dark:text-gray-200">
-                  <Github size={18} />
+              {/* GitHub Sync */}
+              <div className="border-t border-paper-border pt-5 dark:border-ink-border">
+                <h3 className="text-xs font-mono font-medium text-paper-subtle mb-3 uppercase tracking-wider flex items-center gap-1.5 dark:text-ink-ghost">
+                  <Github size={12} />
                   GitHub Sync
                 </h3>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Personal Access Token</label>
+                    <label className="block text-xs font-medium text-paper-subtle mb-1 dark:text-ink-ghost">Access Token</label>
                     <input
                       type="password"
-                      className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-500"
+                      className="w-full px-3 py-2 bg-paper-dim border border-paper-border rounded-md text-sm font-mono focus:outline-none focus:border-amber focus:ring-1 focus:ring-amber dark:bg-ink-lighter dark:border-ink-border dark:text-paper dark:placeholder-ink-muted"
                       placeholder="ghp_..."
                       value={settings.githubToken}
                       onChange={(e) => setSettings({ ...settings, githubToken: e.target.value })}
                     />
-                    <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">Requires 'gist' scope.</p>
+                    <p className="text-[10px] font-mono text-paper-muted mt-1 dark:text-ink-muted">Requires gist scope</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Gist ID</label>
+                    <label className="block text-xs font-medium text-paper-subtle mb-1 dark:text-ink-ghost">Gist ID</label>
                     <input
                       type="text"
-                      className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-500"
-                      placeholder="e.g. 5d53f..."
+                      className="w-full px-3 py-2 bg-paper-dim border border-paper-border rounded-md text-sm font-mono focus:outline-none focus:border-amber focus:ring-1 focus:ring-amber dark:bg-ink-lighter dark:border-ink-border dark:text-paper dark:placeholder-ink-muted"
+                      placeholder="5d53f..."
                       value={settings.gistId}
                       onChange={(e) => setSettings({ ...settings, gistId: e.target.value })}
                     />
@@ -683,19 +690,19 @@ function App() {
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-2 pt-3">
                 <button
                   type="button"
                   onClick={() => setIsSettingsOpen(false)}
-                  className="flex-1 px-4 py-2 border rounded-md hover:bg-gray-50 transition-colors dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                  className="flex-1 px-4 py-2 border border-paper-border rounded-md text-sm hover:bg-paper-dim transition-colors dark:border-ink-border dark:text-ink-ghost dark:hover:bg-ink-lighter"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors dark:bg-indigo-600 dark:hover:bg-indigo-500"
+                  className="flex-1 px-4 py-2 bg-ink text-paper rounded-md text-sm font-medium hover:bg-ink/80 transition-colors dark:bg-paper dark:text-ink dark:hover:bg-paper/80"
                 >
-                  Save Settings
+                  Save
                 </button>
               </div>
             </form>
@@ -703,34 +710,40 @@ function App() {
         </div>
       )}
 
+      {/* Edit modal */}
       {editingBookmark && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 dark:bg-gray-900 dark:border dark:border-gray-800">
-            <h2 className="text-xl font-bold mb-4 dark:text-white">Edit Bookmark</h2>
-            <form onSubmit={handleUpdateBookmark} className="space-y-4">
+        <div className="fixed inset-0 bg-ink/60 flex items-center justify-center z-50 p-4 backdrop-blur-md animate-fade-in">
+          <div className="bg-paper rounded-xl border border-paper-border max-w-md w-full p-6 animate-fade-up dark:bg-ink-light dark:border-ink-border">
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="font-mono text-lg font-bold">Edit</h2>
+              <button onClick={() => setEditingBookmark(null)} className="p-1 rounded-md hover:bg-paper-dim dark:hover:bg-ink-lighter transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={handleUpdateBookmark} className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">URL</label>
+                <label className="block text-xs font-mono font-medium text-paper-subtle mb-1 uppercase tracking-wider dark:text-ink-ghost">URL</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 bg-paper-dim border border-paper-border rounded-md text-sm font-mono focus:outline-none focus:border-amber focus:ring-1 focus:ring-amber dark:bg-ink-lighter dark:border-ink-border dark:text-paper"
                   value={editingBookmark.url}
                   onChange={(e) => setEditingBookmark({ ...editingBookmark, url: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Title</label>
+                <label className="block text-xs font-mono font-medium text-paper-subtle mb-1 uppercase tracking-wider dark:text-ink-ghost">Title</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 bg-paper-dim border border-paper-border rounded-md text-sm focus:outline-none focus:border-amber focus:ring-1 focus:ring-amber dark:bg-ink-lighter dark:border-ink-border dark:text-paper"
                   value={editingBookmark.title}
                   onChange={(e) => setEditingBookmark({ ...editingBookmark, title: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Tags (comma separated)</label>
+                <label className="block text-xs font-mono font-medium text-paper-subtle mb-1 uppercase tracking-wider dark:text-ink-ghost">Tags</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 bg-paper-dim border border-paper-border rounded-md text-sm focus:outline-none focus:border-amber focus:ring-1 focus:ring-amber dark:bg-ink-lighter dark:border-ink-border dark:text-paper"
                   value={editTagsString}
                   onChange={(e) => setEditTagsString(e.target.value)}
                   list="edit-tags-list"
@@ -741,17 +754,17 @@ function App() {
                   ))}
                 </datalist>
               </div>
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-2 pt-3">
                 <button
                   type="button"
                   onClick={() => setEditingBookmark(null)}
-                  className="flex-1 px-4 py-2 border rounded-md hover:bg-gray-50 transition-colors dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                  className="flex-1 px-4 py-2 border border-paper-border rounded-md text-sm hover:bg-paper-dim transition-colors dark:border-ink-border dark:text-ink-ghost dark:hover:bg-ink-lighter"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                  className="flex-1 px-4 py-2 bg-ink text-paper rounded-md text-sm font-medium hover:bg-ink/80 transition-colors dark:bg-paper dark:text-ink dark:hover:bg-paper/80"
                 >
                   Save
                 </button>

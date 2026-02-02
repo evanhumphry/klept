@@ -2,8 +2,34 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-body: 'Outfit', system-ui, sans-serif;
+
+  --color-ink: #0a0a0b;
+  --color-ink-light: #141417;
+  --color-ink-lighter: #1c1c21;
+  --color-ink-border: #2a2a32;
+  --color-ink-muted: #45454f;
+  --color-ink-subtle: #6b6b78;
+  --color-ink-ghost: #9090a0;
+
+  --color-paper: #fafaf8;
+  --color-paper-dim: #f0f0ec;
+  --color-paper-border: #d8d8d0;
+  --color-paper-muted: #a0a098;
+  --color-paper-subtle: #707068;
+
+  --color-amber: #d4a017;
+  --color-amber-light: #f0c040;
+  --color-amber-dim: #b8860b;
+  --color-amber-glow: #d4a01730;
+
+  --color-red-accent: #e85454;
+  --color-green-accent: #3ddc84;
+}
+
 :root {
-  /* Default to system */
   color-scheme: light dark;
 }
 
@@ -15,10 +41,99 @@
   color-scheme: light;
 }
 
+/* Noise texture overlay */
+.noise::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: 0.025;
+  pointer-events: none;
+  z-index: 9999;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+
+.dark .noise::before {
+  opacity: 0.04;
+}
+
 body {
-  @apply bg-gray-100 text-gray-900 transition-colors duration-200;
+  font-family: var(--font-body);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .dark body {
-  @apply bg-gray-900 text-gray-100;
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+/* Staggered entry animations */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.4s ease-out both;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out both;
+}
+
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out both;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-ink-border);
+  border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--color-ink-border);
+}
+
+/* Search input caret */
+input[type="text"]::placeholder {
+  font-family: var(--font-body);
+}
+
+/* Focus ring override */
+*:focus-visible {
+  outline: 2px solid var(--color-amber);
+  outline-offset: 2px;
 }
