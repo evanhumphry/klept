@@ -189,10 +189,11 @@ function App() {
   };
 
   const getSortedBookmarks = () => {
+    const query = searchQuery.trim().toLowerCase();
     let filtered = bookmarks.filter(b =>
-      b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.tags?.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))
+      b.title.toLowerCase().includes(query) ||
+      b.url.toLowerCase().includes(query) ||
+      b.tags?.some(t => t.toLowerCase().includes(query))
     );
 
     if (selectedTag) {
