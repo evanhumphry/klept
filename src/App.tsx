@@ -513,7 +513,7 @@ function App() {
               <div
                 key={bookmark.id}
                 onClick={() => window.location.href = bookmark.url}
-                className="group animate-fade-up rounded-lg border border-transparent px-4 py-3 flex items-center justify-between cursor-pointer transition-all duration-200 hover:bg-paper-dim hover:border-paper-border dark:hover:bg-ink-light dark:hover:border-ink-border"
+                className="group animate-fade-up rounded-lg border border-paper-border px-4 py-3 flex items-center justify-between cursor-pointer transition-all duration-200 hover:bg-paper-dim dark:border-ink-border dark:hover:bg-ink-light"
                 style={{ animationDelay: `${0.04 * Math.min(i, 15)}s` }}
               >
                 <div className="flex-1 min-w-0 flex items-center gap-3">
@@ -551,7 +551,7 @@ function App() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-0.5 ml-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-0.5 ml-3 shrink-0">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
