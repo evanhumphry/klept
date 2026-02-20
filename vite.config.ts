@@ -8,5 +8,5 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
-  base: 'klept', // Using relative paths for better compatibility with GH Pages
+  base: './', // Using relative paths for better compatibility with GH Pages
 })
